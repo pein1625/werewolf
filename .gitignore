@@ -6,3 +6,8 @@ data/
 .playwright-mcp/
 next-env.d.ts
 *.tsbuildinfo
+
+# trang thai cuc bo cua deploy tren VPS
+deploy.log
+.deployed-sha
+.deploy-failed-sha

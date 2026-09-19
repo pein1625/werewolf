@@ -11,22 +11,31 @@ SERVICE="${SERVICE:-werewolf}"
 cd "$APP_DIR"
 
 FAILED_FILE="$APP_DIR/.deploy-failed-sha"
+# Ghi sau khi container mới chạy được. So với file này, KHÔNG so với HEAD của repo:
+# repo tiến lên ngay lúc merge, còn container thì mãi sau mới đổi. Build chết hoặc máy
+# reboot giữa chừng mà so bằng HEAD thì vòng sau tưởng xong rồi, kẹt ở bản cũ không ai biết.
+DEPLOYED_FILE="$APP_DIR/.deployed-sha"
 
 log() { echo "[$(date -Is)] $*"; }
 
 git fetch --quiet --prune origin "$BRANCH"
 local_sha=$(git rev-parse HEAD)
 remote_sha=$(git rev-parse "origin/$BRANCH")
+deployed_sha=$(cat "$DEPLOYED_FILE" 2>/dev/null || echo "")
 
-[ "$local_sha" = "$remote_sha" ] && exit 0
+[ "$deployed_sha" = "$remote_sha" ] && exit 0
 
 # commit này đã thử và hỏng rồi, đừng build lại mỗi phút
 if [ -f "$FAILED_FILE" ] && [ "$(cat "$FAILED_FILE")" = "$remote_sha" ]; then
   exit 0
 fi
 
-log "commit mới: ${local_sha:0:7} -> ${remote_sha:0:7}"
-git merge --ff-only "origin/$BRANCH"
+if [ "$local_sha" = "$remote_sha" ]; then
+  log "code đã đúng bản mới nhưng container chưa đổi — làm lại từ bước build"
+else
+  log "commit mới: ${local_sha:0:7} -> ${remote_sha:0:7}"
+  git merge --ff-only "origin/$BRANCH"
+fi
 
 log "build image"
 docker compose build
@@ -42,5 +51,6 @@ fi
 log "test xanh, đổi sang bản mới"
 docker compose up -d
 docker image prune -f
+git rev-parse HEAD > "$DEPLOYED_FILE"
 rm -f "$FAILED_FILE"
 log "xong: $(git rev-parse --short HEAD)"
