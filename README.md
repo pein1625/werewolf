@@ -222,6 +222,11 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 Dòng `PATH` là bắt buộc — cron chạy với PATH rất hẹp, thiếu nó thì không tìm thấy `docker`.
 `flock -n` bỏ qua lượt chạy nếu lượt trước còn đang build, tránh hai bản build chồng nhau.
 
+Script tự sao chép ra `/tmp` rồi `exec` bản sao trước khi làm gì khác. Lý do: `git merge` ở giữa
+vòng chạy sẽ ghi đè chính file script. Bash đọc script theo vị trí byte chứ không nạp hết vào bộ
+nhớ, nên file bị thay giữa chừng khiến nó đọc tiếp ở offset cũ của nội dung mới — chạy nhầm dòng,
+thoát 127, không có dấu hiệu gì cho thấy nguyên nhân thật.
+
 Theo dõi:
 
 ```bash

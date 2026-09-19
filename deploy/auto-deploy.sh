@@ -4,6 +4,18 @@
 # Test hỏng -> giữ nguyên bản đang chạy, ghi lại sha hỏng để không build lại vô hạn.
 set -euo pipefail
 
+# git merge ở dưới sẽ ghi đè chính file này. Bash đọc script theo vị trí byte chứ không nạp
+# hết vào bộ nhớ, nên file bị thay giữa chừng có thể khiến nó đọc tiếp ở offset cũ của nội
+# dung mới — chạy nhầm dòng, không báo lỗi gì. Chạy từ một bản sao để git ghi đè bao nhiêu
+# cũng không ảnh hưởng tiến trình đang chạy.
+if [ -z "${DEPLOY_FROM_COPY:-}" ]; then
+  self_copy=$(mktemp /tmp/auto-deploy.XXXXXX.sh)
+  cat "$0" > "$self_copy"
+  chmod +x "$self_copy"
+  DEPLOY_FROM_COPY=1 exec "$self_copy" "$@"
+fi
+trap 'rm -f "$0"' EXIT
+
 APP_DIR="${APP_DIR:-/home/deploy/apps/werewolf}"
 BRANCH="${BRANCH:-main}"
 SERVICE="${SERVICE:-werewolf}"
