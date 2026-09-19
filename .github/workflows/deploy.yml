@@ -1,0 +1,76 @@
+name: CI & Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Hai lần deploy chồng nhau sẽ build cùng lúc trên VPS. Xếp hàng, không huỷ nửa chừng.
+concurrency:
+  group: deploy-main
+  cancel-in-progress: false
+
+jobs:
+  check:
+    name: Kiểm tra
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+      - run: npm test
+
+  deploy:
+    name: Deploy lên VPS
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Đẩy lên VPS qua SSH
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          HOST: ${{ secrets.VPS_HOST }}
+          USER: ${{ secrets.VPS_USER }}
+          PORT: ${{ secrets.VPS_PORT || '22' }}
+          KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+          APP_DIR: ${{ secrets.VPS_APP_DIR || '~/werewolf' }}
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+          ssh -i ~/.ssh/id_deploy -p "$PORT" "$USER@$HOST" \
+            "cd $APP_DIR \
+             && git fetch --prune origin \
+             && git pull --ff-only \
+             && docker compose up -d --build \
+             && docker image prune -f"
+
+      - name: Kiểm tra app còn sống sau deploy
+        env:
+          HEALTH_URL: ${{ secrets.VPS_HEALTH_URL }}
+        run: |
+          if [ -z "$HEALTH_URL" ]; then
+            echo "Chưa khai báo VPS_HEALTH_URL — bỏ qua bước này."
+            exit 0
+          fi
+          for i in $(seq 1 20); do
+            if curl -fsS --max-time 5 "$HEALTH_URL" > /dev/null; then
+              echo "App phản hồi bình thường."
+              exit 0
+            fi
+            echo "Chưa lên, thử lại ($i/20)…"
+            sleep 5
+          done
+          echo "App không phản hồi sau khi deploy."
+          exit 1

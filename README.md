@@ -23,6 +23,15 @@ npm start
 
 Biến môi trường: `PORT` (mặc định 3000), `WEREWOLF_DB` (mặc định `./data/werewolf.db`).
 
+Chạy test:
+
+```bash
+npm test
+```
+
+Nó tự dựng server thật, cho ba bộ e2e đâm vào (một ván 6 người, bộ đủ 10 loại lá qua 5 đêm, và khôi
+phục sau khi server chết giữa ván), rồi tự dọn.
+
 ## Luồng một ván
 
 1. Quản trò bấm **Tạo phòng mới** → nhận mã 6 ký tự + QR.
@@ -126,6 +135,62 @@ Muốn đổi cổng thì sửa `ports` trong `docker-compose.yml`, ví dụ `"8
 Chạy `http://` trần vẫn chơi tốt. Nếu sau này gắn tên miền và muốn HTTPS thì đặt một reverse proxy
 (Caddy, Traefik) trước container — khi đó nút Copy link dùng được clipboard API thật thay vì đường
 dự phòng.
+
+## Tự động deploy khi push lên main
+
+`.github/workflows/deploy.yml` chạy mỗi lần push vào `main` (merge PR cũng tính là push):
+
+1. **Kiểm tra** — `npm ci` → `typecheck` → `build` → `npm test` (cả ba bộ e2e).
+2. **Deploy** — chỉ chạy khi bước trên xanh. SSH vào VPS, `git pull`, `docker compose up -d --build`.
+3. **Kiểm tra sống** — gọi thử app sau khi deploy, hỏng thì job đỏ.
+
+Pull request cũng chạy bước kiểm tra nhưng **không** deploy. Code hỏng thì không bao giờ chạm tới VPS.
+
+### Khai báo secret
+
+Vào repo trên GitHub → Settings → Secrets and variables → Actions:
+
+| Secret | Nội dung |
+|---|---|
+| `VPS_HOST` | IP hoặc tên miền VPS |
+| `VPS_USER` | user SSH, ví dụ `root` hay `ubuntu` |
+| `VPS_SSH_KEY` | **private key** của cặp khoá deploy (dán nguyên, cả dòng BEGIN/END) |
+| `VPS_KNOWN_HOSTS` | host key của VPS, chống bị giả mạo máy đích |
+| `VPS_PORT` | cổng SSH nếu khác 22 (không bắt buộc) |
+| `VPS_APP_DIR` | thư mục chứa repo trên VPS, mặc định `~/werewolf` (không bắt buộc) |
+| `VPS_HEALTH_URL` | ví dụ `http://IP:3000` để kiểm tra sau deploy (không bắt buộc) |
+
+### Tạo khoá deploy
+
+Trên máy bạn:
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/werewolf_deploy -N "" -C "github-actions"
+ssh-copy-id -i ~/.ssh/werewolf_deploy.pub <user>@<IP-VPS>
+cat ~/.ssh/werewolf_deploy          # dán vào secret VPS_SSH_KEY
+ssh-keyscan -H <IP-VPS>             # dán vào secret VPS_KNOWN_HOSTS
+```
+
+Dùng khoá riêng cho việc deploy, đừng dùng khoá cá nhân — lộ là mất cả máy.
+
+### Điều kiện trên VPS
+
+Repo phải đã được clone sẵn đúng chỗ (workflow chỉ `git pull`, không clone hộ):
+
+```bash
+git clone https://github.com/pein1625/werewolf.git ~/werewolf
+```
+
+Repo private thì VPS cần quyền đọc — thêm một deploy key read-only trong Settings → Deploy keys.
+
+Workflow dùng `git pull --ff-only`, nên nếu ai đó sửa file trực tiếp trên VPS làm lệch nhánh thì
+deploy sẽ **đỏ và dừng**, không âm thầm ghi đè. Muốn VPS luôn khớp `main` bất chấp thì đổi thành
+`git reset --hard origin/main` — nhưng nó xoá mọi thay đổi tại chỗ.
+
+### Deploy giữa lúc đang chơi
+
+Container restart nên mọi người rớt kết nối vài giây. Không mất ván: state nằm trong volume, client
+tự nối lại bằng token trong trình duyệt và về đúng bước đang dở. Dù vậy, đừng deploy giữa ván.
 
 ## Restart không mất ván
 
