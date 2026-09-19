@@ -192,6 +192,54 @@ deploy sẽ **đỏ và dừng**, không âm thầm ghi đè. Muốn VPS luôn k
 Container restart nên mọi người rớt kết nối vài giây. Không mất ván: state nằm trong volume, client
 tự nối lại bằng token trong trình duyệt và về đúng bước đang dở. Dù vậy, đừng deploy giữa ván.
 
+## Tự động deploy không cần GitHub Actions
+
+Dùng khi tài khoản GitHub không chạy được Actions, hoặc khi không muốn cất khoá SSH trên GitHub.
+VPS tự kéo code về, không có kết nối nào đi vào máy, không cần thẻ, không cần secret.
+
+`deploy/auto-deploy.sh` làm đúng một vòng:
+
+1. `git fetch` — không có commit mới thì thoát ngay, không tốn gì.
+2. Có commit mới → `docker compose build` (container cũ **vẫn đang chạy**).
+3. Chạy `npm test` trong image vừa build.
+4. Test xanh → `docker compose up -d` đổi sang bản mới.
+   Test đỏ → **giữ nguyên bản đang chạy**, ghi sha hỏng vào `.deploy-failed-sha` để không build lại mỗi phút.
+
+Cài trên VPS:
+
+```bash
+cd ~/apps/werewolf && git pull
+crontab -e
+```
+
+Thêm hai dòng (sửa đường dẫn nếu repo nằm chỗ khác):
+
+```cron
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+*/2 * * * * /usr/bin/flock -n /tmp/werewolf-deploy.lock /home/deploy/apps/werewolf/deploy/auto-deploy.sh >> /home/deploy/apps/werewolf/deploy.log 2>&1
+```
+
+Dòng `PATH` là bắt buộc — cron chạy với PATH rất hẹp, thiếu nó thì không tìm thấy `docker`.
+`flock -n` bỏ qua lượt chạy nếu lượt trước còn đang build, tránh hai bản build chồng nhau.
+
+Theo dõi:
+
+```bash
+tail -f ~/apps/werewolf/deploy.log
+```
+
+Chạy tay một lượt không cần chờ cron:
+
+```bash
+~/apps/werewolf/deploy/auto-deploy.sh
+```
+
+Sau khi một commit hỏng làm deploy dừng, sửa xong và push commit mới là nó tự chạy lại; hoặc xoá
+`.deploy-failed-sha` để ép thử lại ngay commit cũ.
+
+Cách này và workflow GitHub Actions chạy song song được. Actions deploy trước thì vòng cron sau đó
+thấy không có gì mới và thoát, không deploy đúp.
+
 ## Restart không mất ván
 
 Event log nằm trong SQLite (`node:sqlite`, không cần cài gì thêm). Server chết giữa ván, bật lại là

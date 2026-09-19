@@ -25,6 +25,8 @@ COPY --from=build /app/next.config.mjs ./next.config.mjs
 COPY --from=build /app/tsconfig.json ./tsconfig.json
 COPY --from=build /app/server.ts ./server.ts
 COPY --from=build /app/src ./src
+# test/ đi kèm để deploy tự động chạy được cổng chặn ngay trong image
+COPY --from=build /app/test ./test
 
 RUN mkdir -p /data && chown -R node:node /data /app
 USER node
