@@ -1,0 +1,8 @@
+node_modules/
+.next/
+data/
+*.db
+*.db-*
+.playwright-mcp/
+next-env.d.ts
+*.tsbuildinfo

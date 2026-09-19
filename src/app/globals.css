@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #0a0b10;
+  --color-ink-2: #111320;
+  --color-ink-3: #191c2e;
+  --color-edge: #262b42;
+  --color-mist: #9aa3c0;
+  --color-moon: #e8ecff;
+  --color-blood: #d64550;
+  --color-blood-dim: #7d2730;
+  --color-gold: #e3b341;
+  --color-pine: #4ba585;
+  --font-display: ui-serif, Georgia, "Times New Roman", serif;
+}
+
+html,
+body {
+  background: var(--color-ink);
+  color: var(--color-moon);
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-image:
+    radial-gradient(1200px 600px at 50% -10%, #1b1f38 0%, transparent 60%),
+    radial-gradient(800px 400px at 10% 100%, #16192c 0%, transparent 70%);
+  background-attachment: fixed;
+  min-height: 100dvh;
+}
+
+@layer utilities {
+  .panel {
+    background: color-mix(in oklab, var(--color-ink-2) 92%, transparent);
+    border: 1px solid var(--color-edge);
+    border-radius: 1rem;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: 0.75rem;
+    padding: 0.7rem 1.1rem;
+    font-weight: 600;
+    border: 1px solid var(--color-edge);
+    background: var(--color-ink-3);
+    color: var(--color-moon);
+    transition: all 0.15s ease;
+    cursor: pointer;
+  }
+  .btn:hover:not(:disabled) {
+    border-color: color-mix(in oklab, var(--color-gold) 50%, var(--color-edge));
+    transform: translateY(-1px);
+  }
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .btn-primary {
+    background: linear-gradient(180deg, #d9a93a, #b3811f);
+    color: #1a1406;
+    border-color: #8d6516;
+  }
+  .btn-danger {
+    background: linear-gradient(180deg, var(--color-blood), var(--color-blood-dim));
+    border-color: #5f1c23;
+    color: #fff;
+  }
+  .btn-ghost {
+    background: transparent;
+  }
+  .input {
+    width: 100%;
+    background: var(--color-ink);
+    border: 1px solid var(--color-edge);
+    border-radius: 0.75rem;
+    padding: 0.7rem 0.9rem;
+    color: var(--color-moon);
+    outline: none;
+  }
+  .input:focus {
+    border-color: var(--color-gold);
+  }
+  .label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-mist);
+  }
+}
+
+@keyframes pulse-alarm {
+  0%, 100% { background-color: color-mix(in oklab, var(--color-blood) 22%, transparent); }
+  50% { background-color: color-mix(in oklab, var(--color-blood) 55%, transparent); }
+}
+.alarm {
+  animation: pulse-alarm 0.9s ease-in-out infinite;
+}
+
+@keyframes copied-pop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+
+@keyframes copied-tick {
+  0% { opacity: 0; transform: translateY(4px) scale(0.7); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.btn-copied {
+  animation: copied-pop 0.42s ease;
+  background: color-mix(in oklab, var(--color-pine) 30%, var(--color-ink-3));
+  border-color: var(--color-pine);
+  color: var(--color-moon);
+}
+
+.btn-copied .tick {
+  display: inline-block;
+  animation: copied-tick 0.28s ease both;
+}
+
+.btn-copy-failed {
+  border-color: var(--color-blood);
+  color: var(--color-moon);
+}
