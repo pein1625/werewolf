@@ -96,6 +96,37 @@ Lá bài vẽ như bài thật: khung đôi, hình ở giữa, tên vai, phe, v�
 | Đồng hồ | có | không |
 | Nguyên nhân chết | thấy ngay | chỉ lá của mình; cả bàn lộ khi kết ván |
 
+## Deploy lên VPS (Ubuntu + Docker)
+
+```bash
+git clone https://github.com/pein1625/werewolf.git
+cd werewolf
+docker compose up -d --build
+```
+
+Xong. Mở `http://<IP-VPS>:3000`.
+
+Nếu VPS bật tường lửa thì mở cổng trước: `sudo ufw allow 3000/tcp`.
+
+Vài lệnh hay dùng:
+
+```bash
+docker compose logs -f        # xem log
+docker compose restart        # khởi động lại, KHÔNG mất ván đang chơi
+docker compose down           # tắt, volume vẫn giữ nguyên dữ liệu
+git pull && docker compose up -d --build   # cập nhật phiên bản mới
+```
+
+Ván đang chơi nằm trong volume `werewolf-data` gắn vào `/data`, nên restart hay deploy lại đều
+không mất. Đã kiểm chứng: restart container giữa đêm thì phòng quay lại đúng bước đang dở.
+
+Muốn đổi cổng thì sửa `ports` trong `docker-compose.yml`, ví dụ `"80:3000"` để vào thẳng
+`http://<IP-VPS>` không cần gõ cổng.
+
+Chạy `http://` trần vẫn chơi tốt. Nếu sau này gắn tên miền và muốn HTTPS thì đặt một reverse proxy
+(Caddy, Traefik) trước container — khi đó nút Copy link dùng được clipboard API thật thay vì đường
+dự phòng.
+
 ## Restart không mất ván
 
 Event log nằm trong SQLite (`node:sqlite`, không cần cài gì thêm). Server chết giữa ván, bật lại là

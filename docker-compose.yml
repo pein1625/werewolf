@@ -1,0 +1,13 @@
+services:
+  werewolf:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      WEREWOLF_DB: /data/werewolf.db
+    volumes:
+      - werewolf-data:/data
+
+volumes:
+  werewolf-data:

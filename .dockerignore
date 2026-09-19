@@ -1,0 +1,14 @@
+node_modules
+.next
+data
+*.db
+*.db-*
+.git
+.gitignore
+.claude
+.playwright-mcp
+next-env.d.ts
+*.tsbuildinfo
+README.md
+Dockerfile
+.dockerignore
