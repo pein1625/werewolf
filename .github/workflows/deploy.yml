@@ -49,12 +49,17 @@ jobs:
           printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
+          # .deployed-sha là thứ deploy/auto-deploy.sh dùng để biết container đang chạy commit nào.
+          # Không ghi thì vòng cron kế tiếp thấy nó cũ hơn origin/main, build lại và đổi container
+          # thêm một lần nữa vài phút sau mỗi lần deploy — người chơi rớt kết nối hai lần.
           ssh -i ~/.ssh/id_deploy -p "$PORT" "$USER@$HOST" \
             "cd $APP_DIR \
              && git fetch --prune origin \
              && git pull --ff-only \
              && docker compose up -d --build \
-             && docker image prune -f"
+             && docker image prune -f \
+             && git rev-parse HEAD > .deployed-sha \
+             && rm -f .deploy-failed-sha"
 
       - name: Kiểm tra app còn sống sau deploy
         env:

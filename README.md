@@ -242,8 +242,27 @@ Chạy tay một lượt không cần chờ cron:
 Sau khi một commit hỏng làm deploy dừng, sửa xong và push commit mới là nó tự chạy lại; hoặc xoá
 `.deploy-failed-sha` để ép thử lại ngay commit cũ.
 
-Cách này và workflow GitHub Actions chạy song song được. Actions deploy trước thì vòng cron sau đó
-thấy không có gì mới và thoát, không deploy đúp.
+### Chạy chung với GitHub Actions
+
+Chọn một hướng làm chính. Repo này chạy Actions; cron poller chỉ là đường lui khi Actions không
+dùng được (khoá billing, không muốn cất khoá SSH trên GitHub).
+
+Nếu để cả hai cùng bật, chúng phải trỏ vào **cùng một thư mục** trên VPS (`VPS_APP_DIR` của workflow
+= `APP_DIR` của script). Hai bản clone khác chỗ nhưng trùng tên thư mục sẽ ra cùng một project name
+của Docker Compose và giành nhau đúng bộ container đó.
+
+Workflow ghi `.deployed-sha` và xoá `.deploy-failed-sha` ngay sau khi đổi container, nên vòng cron
+kế tiếp thấy đã khớp `origin/main` và thoát. Thiếu bước ghi đó thì cron tưởng container còn cũ,
+build lại và đổi container thêm lần nữa vài phút sau mỗi lần Actions deploy.
+
+Tắt hẳn cron khi đã dùng Actions:
+
+```bash
+crontab -l                 # xem dòng nào đang gọi auto-deploy.sh
+crontab -e                 # xoá dòng đó và dòng PATH nếu không còn cron nào khác dùng
+```
+
+Đừng tắt cron trước khi thấy một lần Actions chạy xanh — mất cả hai thì không còn đường deploy nào.
 
 ## Restart không mất ván
 
