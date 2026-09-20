@@ -52,7 +52,12 @@ jobs:
           # .deployed-sha là thứ deploy/auto-deploy.sh dùng để biết container đang chạy commit nào.
           # Không ghi thì vòng cron kế tiếp thấy nó cũ hơn origin/main, build lại và đổi container
           # thêm một lần nữa vài phút sau mỗi lần deploy — người chơi rớt kết nối hai lần.
-          ssh -i ~/.ssh/id_deploy -p "$PORT" "$USER@$HOST" \
+          # BatchMode: hỏng khoá thì chết ngay với lý do thật, không tụt xuống hỏi mật khẩu rồi
+          # báo "Permission denied, please try again" hai lần. IdentitiesOnly: chỉ dùng đúng khoá
+          # deploy, không thử các khoá khác agent đang giữ.
+          ssh -i ~/.ssh/id_deploy -p "$PORT" \
+            -o BatchMode=yes -o IdentitiesOnly=yes -o ConnectTimeout=15 \
+            "$USER@$HOST" \
             "cd $APP_DIR \
              && git fetch --prune origin \
              && git pull --ff-only \
