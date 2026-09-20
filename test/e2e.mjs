@@ -21,6 +21,12 @@ const code = created.code
 await act(host, 'host:join', { code, hostToken: created.hostToken })
 ok(created.ok && code?.length === 6, `tạo phòng ${code}`)
 
+// ---- kiểm tra mã phòng trước khi nhập tên ----
+const checkBad = await send(host, 'room:check', { code: 'ZZZZZZ' })
+ok(checkBad.ok === false && checkBad.error.includes('Không tìm thấy phòng'), 'mã sai bị báo lỗi ngay, không cần nhập tên')
+const checkOk = await send(host, 'room:check', { code: code.toLowerCase() })
+ok(checkOk.ok && checkOk.code === code && checkOk.phase === 'LOBBY', 'mã đúng trả về phòng chờ (không phân biệt hoa thường)')
+
 const names = ['An', 'Bình', 'Cường', 'Dũng', 'Em', 'Phúc']
 const players = []
 for (const name of names) {
@@ -127,6 +133,9 @@ ok(hv().winner === 'VILLAGE', 'phát hiện phe Dân thắng')
 ok((await act(host, 'host:end', { winner: 'VILLAGE' })).ok, 'kết thúc ván')
 ok(seer.latest.reveal.length === 6, 'kết ván: người chơi thấy bảng lật bài')
 ok(seer.latest.reveal.find(r => r.name === hunter.pname).deathCauseLabel === 'Bị sói cắn', 'kết ván: lộ nguyên nhân chết')
+
+const checkEnded = await send(host, 'room:check', { code })
+ok(checkEnded.ok && checkEnded.phase === 'ENDED', 'phòng đã kết thúc trả về phase ENDED')
 
 const rejoin = await connect()
 const back = await send(rejoin, 'player:join', { code, playerToken: seer.ptoken })

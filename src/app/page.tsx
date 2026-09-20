@@ -22,10 +22,15 @@ export default function Home() {
     router.push(`/host/${roomCode}`)
   }
 
-  function joinRoom(e: React.FormEvent) {
+  async function joinRoom(e: React.FormEvent) {
     e.preventDefault()
     const clean = code.trim().toUpperCase()
+    setError(null)
     if (clean.length !== 6) return setError('Mã phòng gồm 6 ký tự.')
+    setBusy(true)
+    const res = await emit('room:check', { code: clean })
+    setBusy(false)
+    if (!res.ok) return setError(res.error)
     router.push(`/play/${clean}`)
   }
 
@@ -78,8 +83,8 @@ export default function Home() {
           autoCapitalize="characters"
           autoComplete="off"
         />
-        <button className="btn mt-3 w-full" type="submit">
-          Vào phòng
+        <button className="btn mt-3 w-full" type="submit" disabled={busy}>
+          {busy ? 'Đang tìm phòng…' : 'Vào phòng'}
         </button>
         <p className="mt-3 text-center text-xs text-mist">
           Hoặc quét mã QR quản trò đang chiếu.

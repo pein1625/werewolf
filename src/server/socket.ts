@@ -131,6 +131,17 @@ export function attachSockets(httpServer: HttpServer): Server {
       ack?.({ ok: true, code: room.code, hostToken: room.hostToken })
     })
 
+    socket.on('room:check', ({ code }: { code?: string }, ack?: Ack) => {
+      const room = getRoom((code ?? '').trim())
+      if (!room) return fail(ack, 'Không tìm thấy phòng. Kiểm tra lại mã.')
+      ack?.({
+        ok: true,
+        code: room.code,
+        phase: room.state.phase,
+        playerCount: room.state.players.length,
+      })
+    })
+
     socket.on('host:join', ({ code, hostToken }: { code: string; hostToken: string }, ack?: Ack) => {
       const room = getRoom(code)
       if (!room) return fail(ack, 'Không tìm thấy phòng.')

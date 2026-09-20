@@ -24,9 +24,26 @@ export default function PlayPage({ params }: { params: Promise<{ code: string }>
   const [joinError, setJoinError] = useState<string | null>(null)
   const [hasToken, setHasToken] = useState<boolean | null>(null)
   const [busy, setBusy] = useState(false)
+  const [roomCheck, setRoomCheck] = useState<RoomCheck>({ status: 'checking' })
 
   useEffect(() => {
     setHasToken(Boolean(localStorage.getItem(playerKey(roomCode))))
+  }, [roomCode])
+
+  useEffect(() => {
+    let live = true
+    setRoomCheck({ status: 'checking' })
+    void emit('room:check', { code: roomCode }).then((res) => {
+      if (!live) return
+      setRoomCheck(
+        res.ok
+          ? { status: 'found', phase: res.phase as string }
+          : { status: 'missing', error: res.error },
+      )
+    })
+    return () => {
+      live = false
+    }
   }, [roomCode])
 
   const connect = useCallback(async () => {
@@ -50,7 +67,26 @@ export default function PlayPage({ params }: { params: Promise<{ code: string }>
     setHasToken(true)
   }
 
-  if (hasToken === null) return <Splash text="Đang mở phòng…" />
+  if (hasToken === null || roomCheck.status === 'checking') {
+    return <Splash text="Đang mở phòng…" />
+  }
+
+  if (roomCheck.status === 'missing') {
+    return <DeadEnd code={roomCode} message={roomCheck.error} />
+  }
+
+  if (roomCheck.phase !== 'LOBBY' && !state && (!hasToken || error)) {
+    return (
+      <DeadEnd
+        code={roomCode}
+        message={
+          roomCheck.phase === 'ENDED'
+            ? 'Ván này đã kết thúc rồi.'
+            : 'Ván đã bắt đầu, không vào được nữa. Nhờ quản trò thêm bạn vào.'
+        }
+      />
+    )
+  }
 
   if (!state) {
     if (!hasToken || error) {
@@ -90,6 +126,30 @@ export default function PlayPage({ params }: { params: Promise<{ code: string }>
   if (state.phase === 'ENDED') return <EndScreen view={state} />
   if (!state.you.role) return <LobbyScreen view={state} />
   return <CardScreen view={state} />
+}
+
+type RoomCheck =
+  | { status: 'checking' }
+  | { status: 'found'; phase: string }
+  | { status: 'missing'; error: string }
+
+function DeadEnd({ code, message }: { code: string; message: string }) {
+  return (
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 px-4 py-12 text-center">
+      <header>
+        <p className="text-4xl">🚪</p>
+        <h1 className="mt-2 font-[family-name:var(--font-display)] text-3xl font-bold">
+          Phòng {code}
+        </h1>
+      </header>
+      <p className="rounded-xl border border-blood-dim bg-blood-dim/20 px-4 py-3 text-sm">
+        {message}
+      </p>
+      <a className="btn btn-primary w-full" href="/">
+        Nhập mã khác
+      </a>
+    </main>
+  )
 }
 
 function Splash({ text }: { text: string }) {
