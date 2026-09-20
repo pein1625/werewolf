@@ -4,6 +4,7 @@ import { use, useCallback, useEffect, useState } from 'react'
 import type { PlayerView } from '@/game/views'
 import { emit, useRoomState } from '@/lib/useRoom'
 import { RoleArt } from '@/components/RoleArt'
+import { RoleImage } from '@/components/RoleImage'
 
 const WINNER_TEXT: Record<string, string> = {
   WOLF: 'Phe Sói thắng',
@@ -202,49 +203,36 @@ function CardScreen({ view }: { view: PlayerView }) {
 
       <div className="relative mx-auto w-full max-w-[310px]">
         <div
-          className="relative overflow-hidden rounded-2xl border-2 shadow-2xl"
+          className="relative overflow-hidden rounded-2xl shadow-2xl"
           style={{
             aspectRatio: '5 / 7',
-            borderColor: frame,
-            background: wolf
-              ? 'radial-gradient(125% 85% at 50% 0%, rgba(214,69,80,0.34), #0a0b10 68%)'
-              : 'radial-gradient(125% 85% at 50% 0%, rgba(75,165,133,0.30), #0a0b10 68%)',
+            background: '#0a0b10',
             filter: alive ? undefined : 'grayscale(0.7)',
           }}
         >
-          <div
-            className="pointer-events-none absolute inset-2.5 rounded-xl border"
-            style={{ borderColor: frame, opacity: 0.55 }}
-          />
-
           {role ? (
-            <>
-              <div className="absolute top-4 left-4" style={{ color: accent }}>
-                <RoleArt roleId={role.id} className="h-5 w-5 opacity-70" />
-              </div>
-              <div className="absolute right-4 bottom-4 rotate-180" style={{ color: accent }}>
-                <RoleArt roleId={role.id} className="h-5 w-5 opacity-70" />
-              </div>
-
-              <div className="relative flex h-full flex-col items-center justify-center gap-3 px-7 pb-10 text-center">
-                <div style={{ color: accent }}>
-                  <RoleArt roleId={role.id} className="h-24 w-24" />
-                </div>
-                <h1 className="font-[family-name:var(--font-display)] text-4xl leading-none font-bold">
-                  {role.name}
-                </h1>
-                <span
-                  className="rounded-full px-3 py-1 text-[11px] font-semibold tracking-wide uppercase"
+            <RoleImage
+              roleId={role.id}
+              className="h-full w-full object-cover"
+              fallback={
+                <div
+                  className="flex h-full w-full flex-col items-center justify-center gap-3 rounded-2xl border-2 px-7 text-center"
                   style={{
-                    background: wolf ? 'var(--color-blood-dim)' : 'rgba(75,165,133,0.28)',
-                    color: wolf ? '#ffd9dc' : '#bdf0dd',
+                    borderColor: frame,
+                    background: wolf
+                      ? 'radial-gradient(125% 85% at 50% 0%, rgba(214,69,80,0.34), #0a0b10 68%)'
+                      : 'radial-gradient(125% 85% at 50% 0%, rgba(75,165,133,0.30), #0a0b10 68%)',
                   }}
                 >
-                  {wolf ? 'Phe Sói' : 'Phe Dân'}
-                </span>
-                <p className="text-sm leading-relaxed text-moon/85">{role.summary}</p>
-              </div>
-            </>
+                  <div style={{ color: accent }}>
+                    <RoleArt roleId={role.id} className="h-24 w-24" />
+                  </div>
+                  <p className="font-[family-name:var(--font-display)] text-3xl leading-none font-bold">
+                    {role.name}
+                  </p>
+                </div>
+              }
+            />
           ) : null}
 
           {!alive ? (
@@ -266,6 +254,24 @@ function CardScreen({ view }: { view: PlayerView }) {
           ) : null}
         </div>
       </div>
+
+      {role ? (
+        <div className="text-center">
+          <h1 className="font-[family-name:var(--font-display)] text-3xl leading-none font-bold">
+            {role.name}
+          </h1>
+          <span
+            className="mt-2 inline-block rounded-full px-3 py-1 text-[11px] font-semibold tracking-wide uppercase"
+            style={{
+              background: wolf ? 'var(--color-blood-dim)' : 'rgba(75,165,133,0.28)',
+              color: wolf ? '#ffd9dc' : '#bdf0dd',
+            }}
+          >
+            {wolf ? 'Phe Sói' : 'Phe Dân'}
+          </span>
+          <p className="mt-2 text-sm leading-relaxed text-moon/85">{role.summary}</p>
+        </div>
+      ) : null}
 
       {!alive ? (
         <p className="text-center text-xs text-mist">

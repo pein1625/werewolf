@@ -4,6 +4,7 @@ import { useRef, useState } from 'react'
 import type { RoleId } from '@/game/roles'
 import { ROLES, ROLE_LIST } from '@/game/roles'
 import { RoleArt } from '@/components/RoleArt'
+import { RoleImage } from '@/components/RoleImage'
 
 type Counts = Partial<Record<RoleId, number>>
 
@@ -43,9 +44,10 @@ function CardFace({
           : 'linear-gradient(165deg, rgba(75,165,133,0.26), rgba(10,11,16,0.9))',
       }}
     >
-      <RoleArt
+      <RoleImage
         roleId={roleId}
-        className={size === 'sm' ? 'h-7 w-7' : 'h-9 w-9'}
+        className={`rounded-md object-cover ${size === 'sm' ? 'h-8 w-8' : 'h-10 w-10'}`}
+        fallback={<RoleArt roleId={roleId} className={size === 'sm' ? 'h-7 w-7' : 'h-9 w-9'} />}
       />
       <span
         className={`w-full text-center leading-tight font-semibold ${
